@@ -9,6 +9,7 @@ const userService = {
                 logger.info(
                     'error creating user: ',
                     err.message || 'unknown error'
+                    
                 )
                 callback(err, null)
             } else {
@@ -73,7 +74,7 @@ update: (id, updatedUser, callback) => {
       if (err) {
         callback(err, null);
       } else {
-        if (data) {
+      if (data) {
           callback(null, {
             message: `User deleted with id ${userId}.`,
             data: data,

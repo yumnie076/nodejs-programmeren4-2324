@@ -33,6 +33,13 @@ const validateUserCreateAssert = (req, res, next) => {
         assert(req.body.emailAdress, 'Missing email')
         assert(req.body.firstName, 'Missing or incorrect first name')
         assert(req.body.lastName, 'Missing last name')
+        // validate email format
+        assert(
+            req.body.emailAdress.match(
+              /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+            ),
+            "Invalid email address"
+          );
         next()
     } catch (ex) {
         next({
@@ -43,45 +50,9 @@ const validateUserCreateAssert = (req, res, next) => {
     }
 }
 
-// Input validation function 2 met gebruik van assert
-const validateUserCreateChaiShould = (req, res, next) => {
-    try {
-        req.body.firstName.should.not.be.empty.and.a('string')
-        req.body.lastName.should.not.be.empty.and.a('string')
-        req.body.emailAdress.should.not.be.empty.and.a('string').and.match(/@/)
-        next()
-    } catch (ex) {
-        next({
-            status: 400,
-            message: ex.message,
-            data: {}
-        })
-    }
-}
-
-const validateUserCreateChaiExpect = (req, res, next) => {
-    try {
-        assert(req.body.firstName, 'Missing or incorrect firstName field')
-        chai.expect(req.body.firstName).to.not.be.empty
-        chai.expect(req.body.firstName).to.be.a('string')
-        chai.expect(req.body.firstName).to.match(
-            /^[a-zA-Z]+$/,
-            'firstName must be a string'
-        )
-        logger.trace('User successfully validated')
-        next()
-    } catch (ex) {
-        logger.trace('User validation failed:', ex.message)
-        next({
-            status: 400,
-            message: ex.message,
-            data: {}
-        })
-    }
-}
 
 // Userroutes
-router.post('/api/user', userController.create)
+router.post('/api/user',validateUserCreateAssert, userController.create)
 router.get('/api/user', userController.getAll)
 router.get('/api/user/:userId', userController.getById)
 router.put('/api/user/:userId', userController.update)
