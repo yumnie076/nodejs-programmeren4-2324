@@ -6,6 +6,8 @@ const router = express.Router()
 const userController = require('../controllers/user.controller')
 const logger = require('../util/logger')
 
+
+
 // Tijdelijke functie om niet bestaande routes op te vangen
 const notFound = (req, res, next) => {
     next({

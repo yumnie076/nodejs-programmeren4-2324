@@ -1,6 +1,10 @@
+require('dotenv').config()
+
 const express = require('express')
 const userRoutes = require('./src/routes/user.routes')
 const logger = require('./src/util/logger')
+const pool = require('./mysql-pool')
+
 
 const app = express()
 
@@ -19,6 +23,23 @@ app.get('/api/info', (req, res) => {
     }
     res.json(info)
 })
+
+app.get('/api/user', (req, res) => {
+    pool.query('SELECT * FROM `user`', (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          status: 500,
+          message: 'Database error',
+          data: {}
+        });
+      }
+      res.status(200).json({
+        status: 200,
+        message: `Found ${results.length} users.`,
+        data: results
+      });
+    });
+  });
 
 // Hier komen alle routes
 app.use(userRoutes)
