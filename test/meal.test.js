@@ -1,6 +1,6 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const server = require('../index'); // Adjust the path to your server file
+const server = require('../index'); 
 const tracer = require('tracer');
 
 const { expect } = chai;
@@ -13,7 +13,7 @@ describe('UC-301 Add Meal', () => {
     function getValidToken(callback) {
         chai.request(server)
             .post('/api/login')
-            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) // Use valid credentials
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) 
             .end((err, res) => {
                 if (err) return callback(err);
                 const token = res.body.data.token;
@@ -28,7 +28,7 @@ describe('UC-301 Add Meal', () => {
             chai.request(server)
                 .post('/api/meals')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ name: 'Pizza' }) // Missing other required fields like description, price, etc.
+                .send({ name: 'Pizza' }) 
                 .end((err, res) => {
                     expect(res).to.have.status(400);
                     expect(res.body).to.be.an('object');
@@ -64,7 +64,7 @@ describe('UC-301 Add Meal', () => {
                     description: 'Delicious cheese pizza', 
                     price: 9.99, 
                     cookId: 1,
-                    dateTime: '2024-05-15T12:00:00' // Adding a valid dateTime
+                    dateTime: '2024-05-15T12:00:00'
                 })
                 .end((err, res) => {
                     expect(res).to.have.status(500);
@@ -83,7 +83,7 @@ describe('UC-302 Wijzigen van maaltijdsgegevens', () => {
     function getValidToken(callback) {
         chai.request(server)
             .post('/api/login')
-            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) // Use valid credentials
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' })
             .end((err, res) => {
                 if (err) return callback(err);
                 const token = res.body.data.token;
@@ -99,7 +99,7 @@ describe('UC-302 Wijzigen van maaltijdsgegevens', () => {
             chai.request(server)
                 .put('/api/meals/1')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ name: 'Pizza' }) // Missing other required fields
+                .send({ name: 'Pizza' }) 
                 .end((err, res) => {
                     expect(res).to.have.status(400);
                     expect(res.body).to.be.an('object');
@@ -130,7 +130,7 @@ describe('UC-302 Wijzigen van maaltijdsgegevens', () => {
             if (err) return done(err);
 
             chai.request(server)
-                .put('/api/meals/2') // Assuming meal 2 is not owned by the user
+                .put('/api/meals/2') 
                 .set('Authorization', `Bearer ${token}`)
                 .send({ name: 'Pizza', price: 9.99, maxAmountOfParticipants: 10 })
                 .end((err, res) => {
@@ -149,7 +149,7 @@ describe('UC-302 Wijzigen van maaltijdsgegevens', () => {
             if (err) return done(err);
 
             chai.request(server)
-                .put('/api/meals/9999') // Use a non-existent meal ID
+                .put('/api/meals/9999') 
                 .set('Authorization', `Bearer ${token}`)
                 .send({ name: 'Pizza', price: 9.99, maxAmountOfParticipants: 10 })
                 .end((err, res) => {
@@ -168,7 +168,7 @@ describe('UC-302 Wijzigen van maaltijdsgegevens', () => {
             if (err) return done(err);
 
             chai.request(server)
-                .put('/api/meals/1') // Use an existing meal ID
+                .put('/api/meals/1') 
                 .set('Authorization', `Bearer ${token}`)
                 .send({ name: 'Pizza', price: 9.99, maxAmountOfParticipants: 10 })
                 .end((err, res) => {
@@ -186,7 +186,7 @@ describe('UC-303 Opvragen van alle maaltijden', () => {
     // TC-303-1 Lijst van maaltijden geretourneerd 200
     it('TC-303-1 Lijst van maaltijden geretourneerd', (done) => {
         chai.request(server)
-            .get('/api/meals') // Adjust the endpoint to your actual route
+            .get('/api/meals') 
             .end((err, res) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -196,7 +196,7 @@ describe('UC-303 Opvragen van alle maaltijden', () => {
                     expect(meal).to.have.property('name').that.is.a('string');
                     expect(meal).to.have.property('description').that.is.a('string');
                     
-                    // Add other properties that are expected to be in the meal object
+                    
                 });
                 done();
             });
@@ -207,7 +207,7 @@ describe('UC-304 Opvragen van maaltijd bij ID', () => {
     // TC-304-1 Maaltijd bestaat niet 404
     it('TC-304-1 Maaltijd bestaat niet', (done) => {
         chai.request(server)
-            .get('/api/meals/9999') // Use a non-existent meal ID
+            .get('/api/meals/9999') 
             .end((err, res) => {
                 expect(res).to.have.status(401);
                 expect(res.body).to.be.an('object');
@@ -220,12 +220,12 @@ describe('UC-304 Opvragen van maaltijd bij ID', () => {
     // TC-304-2 Details van maaltijd geretourneerd 200
     it('TC-304-2 Details van maaltijd geretourneerd', (done) => {
         chai.request(server)
-            .get('/api/meals/1') // Use an existing meal ID
+            .get('/api/meals/1') 
             .end((err, res) => {
                 expect(res).to.have.status(401);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data').that.is.an('object');
-                // Add other properties that are expected to be in the meal object
+                
                 done();
             });
     });
@@ -235,7 +235,7 @@ describe('UC-305 Verwijderen van maaltijd', () => {
     function getValidToken(callback) {
         chai.request(server)
             .post('/api/login')
-            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) // Use valid credentials
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) 
             .end((err, res) => {
                 if (err) return callback(err);
                 const token = res.body.data.token;
@@ -246,7 +246,7 @@ describe('UC-305 Verwijderen van maaltijd', () => {
     // TC-305-1 Niet ingelogd 401
     it('TC-305-1 Niet ingelogd', (done) => {
         chai.request(server)
-            .delete('/api/meals/1') // Use an existing meal ID
+            .delete('/api/meals/1') 
             .end((err, res) => {
                 expect(res).to.have.status(401);
                 expect(res.body).to.be.an('object');
@@ -262,7 +262,7 @@ describe('UC-305 Verwijderen van maaltijd', () => {
             if (err) return done(err);
 
             chai.request(server)
-                .delete('/api/meals/2') // Assuming meal 2 is not owned by the user
+                .delete('/api/meals/2')
                 .set('Authorization', `Bearer ${token}`)
                 .end((err, res) => {
                     expect(res).to.have.status(404);
@@ -279,7 +279,7 @@ describe('UC-305 Verwijderen van maaltijd', () => {
             if (err) return done(err);
 
             chai.request(server)
-                .delete('/api/meals/9999') // Use a non-existent meal ID
+                .delete('/api/meals/9999')
                 .set('Authorization', `Bearer ${token}`)
                 .end((err, res) => {
                     expect(res).to.have.status(404);
@@ -297,7 +297,7 @@ describe('UC-305 Verwijderen van maaltijd', () => {
             if (err) return done(err);
 
             chai.request(server)
-                .delete('/api/meals/1') // Use an existing meal ID
+                .delete('/api/meals/1') 
                 .set('Authorization', `Bearer ${token}`)
                 .end((err, res) => {
                     expect(res).to.have.status(404);

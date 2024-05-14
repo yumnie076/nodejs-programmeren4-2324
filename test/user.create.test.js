@@ -14,10 +14,10 @@ describe('UC-101 Inloggen', () => {
     it('TC-101-1 Verplicht veld ontbreekt', (done) => {
         chai.request(server)
             .post('/api/login')
-            .send({ emailAddress: 'j.doe@server.com' }) // Missing password
+            .send({ emailAddress: 'j.doe@server.com' }) 
             .end((err, res) => {
-                console.log(res.body); // Log the response body
-                res.should.have.status(409); // Adjust according to actual response
+                console.log(res.body); 
+                res.should.have.status(409); 
                 res.body.should.be.a('object');
                 res.body.should.have.property('message');
                 done();
@@ -29,8 +29,8 @@ describe('UC-101 Inloggen', () => {
             .post('/api/login')
             .send({ emailAddress: 'john.doe@example.com', password: 'wrongpassword' })
             .end((err, res) => {
-                console.log(res.body); // Log the response body
-                res.should.have.status(401); // Adjust according to actual response
+                console.log(res.body); 
+                res.should.have.status(401); 
                 res.body.should.be.a('object');
                 res.body.should.have.property('message').eql('User not found or password invalid');
                 done();
@@ -42,8 +42,8 @@ describe('UC-101 Inloggen', () => {
             .post('/api/login')
             .send({ emailAddress: 'nonexistent@server.com', password: 'Password123' })
             .end((err, res) => {
-                console.log(res.body); // Log the response body
-                res.should.have.status(404); // Adjust according to actual response
+                console.log(res.body); 
+                res.should.have.status(404); 
                 res.body.should.be.a('object');
                 res.body.should.have.property('message').eql('Gebruiker bestaat niet');
                 done();
@@ -55,8 +55,8 @@ describe('UC-101 Inloggen', () => {
             .post('/api/login')
             .send({ emailAddress: 'john.doe@example.com', password: '' })
             .end((err, res) => {
-                console.log(res.body); // Log the response body
-                res.should.have.status(200); // Adjust according to actual response
+                console.log(res.body); 
+                res.should.have.status(200); 
                 res.body.should.be.a('object');
                 res.body.should.have.property('message').eql('Gebruiker succesvol ingelogd');
                 res.body.data.should.have.property('token');
@@ -70,7 +70,7 @@ describe('UC-101 Inloggen', () => {
 //    it('TC-201-1 Verplicht veld ontbreekt', (done) => {
 //        chai.request(server)
 //            .post('/api/user')
-//            .send({ emailAddress: 'unique.email@server.com', password: 'Secret12' }) // Missing required fields
+//            .send({ emailAddress: 'unique.email@server.com', password: 'Secret12' }) 
 //            .end((err, res) => {
 //                console.log(res.body); // Log the response body
 //                expect(res).to.have.status(403); // Adjust according to actual response
@@ -91,8 +91,8 @@ describe('UC-101 Inloggen', () => {
 //                phoneNumber: '0612345678'
 //            })
 //            .end((err, res) => {
-//                console.log(res.body); // Log the response body
-//                expect(res).to.have.status(403); // Adjust according to actual response
+//                console.log(res.body); 
+//                expect(res).to.have.status(403); 
 //                expect(res.body).to.have.property('message').that.is.a('string');
 //                expect(res.body).to.have.property('data').that.is.empty;
 //                done();
@@ -110,8 +110,8 @@ describe('UC-101 Inloggen', () => {
 //                phoneNumber: '0612345678'
 //            })
 //            .end((err, res) => {
-//                console.log(res.body); // Log the response body
-//                expect(res).to.have.status(400); // Adjust according to actual response
+//                console.log(res.body);
+//                expect(res).to.have.status(400); 
 //                expect(res.body).to.have.property('message').that.is.a('string');
 //                expect(res.body).to.have.property('data').that.is.empty;
 //                done();
@@ -129,8 +129,8 @@ describe('UC-101 Inloggen', () => {
 //                phoneNumber: '0612345678'
 //            })
 //            .end((err, res) => {
-//                console.log(res.body); // Log the response body
-//                expect(res).to.have.status(400); // Adjust according to actual response
+//                console.log(res.body); 
+//                expect(res).to.have.status(400); 
 //                expect(res.body).to.have.property('message').that.is.a('string');
 //                expect(res.body).to.have.property('data').that.is.empty;
 //                done();
@@ -173,7 +173,6 @@ describe('UC-101 Inloggen', () => {
 //            
 //    });
 //});
-
 
 describe('UC-202 User Overview', () => {
 
@@ -250,13 +249,11 @@ describe('UC-202 User Overview', () => {
     });
 });
 
-
 describe('UC-203 User Profile', () => {
-// Helper function to get a valid token for testing
 function getValidToken(callback) {
     chai.request(server)
         .post('/api/login')
-        .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) // Use valid credentials
+        .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) 
         .end((err, res) => {
             if (err) return callback(err);
             const token = res.body.data.token;
@@ -267,32 +264,32 @@ function getValidToken(callback) {
  it('TC-203-1 Invalid token', (done) => {
     chai.request(server)
         .get('/api/user/profile')
-        .set('Authorization', 'Bearer invalidtoken') // Set an invalid token
+        .set('Authorization', 'Bearer invalidtoken') 
         .end((err, res) => {
             expect(res).to.have.status(401);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('message').that.is.a('string');
-            expect(res.body.message).to.equal('Not authorized!'); // Updated to match actual message
-            expect(res.body).to.have.property('data').that.is.an('object').that.is.empty; // Adjusted expectation
+            expect(res.body.message).to.equal('Not authorized!'); 
+            expect(res.body).to.have.property('data').that.is.an('object').that.is.empty; 
             done();
         });
 });
 
 // TC-203-2 Valid token
 it('TC-203-2 Valid token', (done) => {
-    // Assuming there's a function to get a valid token for testing
+ 
     getValidToken((err, token) => {
         if (err) return done(err);
 
         chai.request(server)
             .get('/api/user/profile')
-            .set('Authorization', `Bearer ${token}`) // Set a valid token
+            .set('Authorization', `Bearer ${token}`) 
             .end((err, res) => {
-                console.log(res.body); // Log the response body
+                console.log(res.body); 
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('message').that.is.a('string');
-                expect(res.body.message).to.equal('Profile retrieved successfully.'); // Updated to match actual message
+                expect(res.body.message).to.equal('Profile retrieved successfully.');
                 expect(res.body).to.have.property('data').that.is.an('object');
                 done();
             });
@@ -300,12 +297,11 @@ it('TC-203-2 Valid token', (done) => {
 });
 });
 
-
 describe('UC-204 Retrieve User by ID', () => {
     function getValidToken(callback) {
         chai.request(server)
             .post('/api/login')
-            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) // Use valid credentials
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) 
             .end((err, res) => {
                 if (err) return callback(err);
                 const token = res.body.data.token;
@@ -315,32 +311,31 @@ describe('UC-204 Retrieve User by ID', () => {
     // TC-204-1 Invalid token
     it('TC-204-1 Invalid token', (done) => {
         chai.request(server)
-            .get('/api/user/1') // Replace with actual user ID endpoint
-            .set('Authorization', 'Bearer invalidtoken') // Set an invalid token
+            .get('/api/user/1') 
+            .set('Authorization', 'Bearer invalidtoken') 
             .end((err, res) => {
                 expect(res).to.have.status(401);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('message').that.is.a('string');
-                expect(res.body.message).to.equal('Not authorized!'); // Updated to match actual message
-                expect(res.body).to.have.property('data').that.is.an('object').that.is.empty; // Adjusted expectation
+                expect(res.body.message).to.equal('Not authorized!'); 
+                expect(res.body).to.have.property('data').that.is.an('object').that.is.empty; 
                 done();
             });
     });
 
     // TC-204-2 User ID does not exist
     it('TC-204-2 User ID does not exist', (done) => {
-        // Assuming there's a function to get a valid token for testing
         getValidToken((err, token) => {
             if (err) return done(err);
 
             chai.request(server)
-                .get('/api/user/9999') // Use a non-existent user ID
-                .set('Authorization', `Bearer ${token}`) // Set a valid token
+                .get('/api/user/9999')
+                .set('Authorization', `Bearer ${token}`)
                 .end((err, res) => {
                     expect(res).to.have.status(404);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('message').that.is.a('string');
-                    expect(res.body.message).to.equal('User not found'); // Adjusted to expected message
+                    expect(res.body.message).to.equal('User not found'); 
                     expect(res.body).to.have.property('data').that.is.an('object').that.is.empty;
                     done();
                 });
@@ -349,18 +344,17 @@ describe('UC-204 Retrieve User by ID', () => {
 
     // TC-204-3 User ID exists
     it('TC-204-3 User ID exists', (done) => {
-        // Assuming there's a function to get a valid token for testing
         getValidToken((err, token) => {
             if (err) return done(err);
 
             chai.request(server)
-                .get('/api/user/3') // Use an existing user ID
-                .set('Authorization', `Bearer ${token}`) // Set a valid token
+                .get('/api/user/3') 
+                .set('Authorization', `Bearer ${token}`) 
                 .end((err, res) => {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('message').that.is.a('string');
-                    expect(res.body.message).to.equal('User retrieved successfully'); // Adjusted to expected message
+                    expect(res.body.message).to.equal('User retrieved successfully'); 
                     expect(res.body).to.have.property('data').that.is.an('object');
 
                     done();
@@ -373,7 +367,7 @@ describe('UC-205 Update User Details', () => {
     function getValidToken(callback) {
         chai.request(server)
             .post('/api/login')
-            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) // Use valid credentials
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) 
             .end((err, res) => {
                 if (err) return callback(err);
                 const token = res.body.data.token;
@@ -388,7 +382,7 @@ describe('UC-205 Update User Details', () => {
             chai.request(server)
                 .put('/api/user/1')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ firstName: 'John', lastName: 'Doe' }) // Missing emailAddress
+                .send({ firstName: 'John', lastName: 'Doe' }) 
                 .end((err, res) => {
                     expect(res).to.have.status(400);
                     expect(res.body).to.be.an('object');
@@ -405,7 +399,7 @@ describe('UC-205 Update User Details', () => {
             if (err) return done(err);
 
             chai.request(server)
-                .put('/api/user/2') // Assuming user 1 is not the owner of user 2's data
+                .put('/api/user/2') 
                 .set('Authorization', `Bearer ${token}`)
                 .send({ firstName: 'John', lastName: 'Doe', emailAddress: 'john.doe@example.com', phoneNumber: '0612345678' })
                 .end((err, res) => {
@@ -442,7 +436,7 @@ describe('UC-205 Update User Details', () => {
             if (err) return done(err);
     
             chai.request(server)
-                .put('/api/user/999999') // Use a non-existent user ID
+                .put('/api/user/999999') 
                 .set('Authorization', `Bearer ${token}`)
                 .send({ firstName: 'John', lastName: 'Doe', emailAddress: 'john.doe@example.com', phoneNumber: '0612345678' })
                 .end((err, res) => {
@@ -495,14 +489,11 @@ describe('UC-205 Update User Details', () => {
 
 });
 
-
-
-
 describe('UC-206 Delete User', () => {
     function getValidToken(callback) {
         chai.request(server)
             .post('/api/login')
-            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) // Use valid credentials
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' })
             .end((err, res) => {
                 if (err) return callback(err);
                 const token = res.body.data.token;
@@ -515,7 +506,7 @@ describe('UC-206 Delete User', () => {
             if (err) return done(err);
 
             chai.request(server)
-                .delete('/api/user/999999') // Use a non-existent user ID
+                .delete('/api/user/999999') 
                 .set('Authorization', `Bearer ${token}`)
                 .end((err, res) => {
                     expect(res).to.have.status(404);
@@ -545,7 +536,7 @@ describe('UC-206 Delete User', () => {
             if (err) return done(err);
     
             chai.request(server)
-                .delete('/api/user/2') // Assuming user 1 is not the owner of user 2's data
+                .delete('/api/user/2') 
                 .set('Authorization', `Bearer ${token}`)
                 .end((err, res) => {
                     expect(res).to.have.status(500);
@@ -563,7 +554,7 @@ describe('UC-206 Delete User', () => {
             if (err) return done(err);
     
             chai.request(server)
-                .delete('/api/user/1') // Use an existing user ID
+                .delete('/api/user/1') 
                 .set('Authorization', `Bearer ${token}`)
                 .end((err, res) => {
                     expect(res).to.have.status(500);
