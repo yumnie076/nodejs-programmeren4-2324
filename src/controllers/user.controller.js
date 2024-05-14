@@ -26,7 +26,7 @@ const userController = {
           });
         }
         if (success) {
-          res.status(201).json({
+          res.status(401).json({
             status: success.status,
             message: success.message,
             data: success.data
@@ -35,24 +35,20 @@ const userController = {
       });
     },
   
-    // Haal alle gebruikers op
-    getAll: (req, res, next) => {
-      userService.getAll((error, success) => {
-        if (error) {
-          return next({
-            status: error.status,
-            message: error.message,
-            data: {}
-          });
-        }
-        if (success) {
-          res.status(200).json({
-            status: 200,
-            message: success.message,
-            data: success.data
-          });
-        }
-      });
+    // Haal alle gebruikers op en filter op basis van parameters
+    getAll: (req, res) => {
+        const filters = req.query;  // Directly using all query parameters as filters
+    
+        userService.getAll(filters, (error, result) => {
+            if (error) {
+                return res.status(error.status || 400).json({ message: error.message });
+            }
+            res.status(200).json({
+                status: 200,
+                message: 'Users retrieved successfully',
+                data: result
+            });
+        });
     },
   
     // Haal gebruiker op basis van ID
@@ -122,7 +118,30 @@ const userController = {
         }
       });
     },
-  
+    
+    getProfile: (req, res, next) => {
+        const userId = parseInt(req.userId);
+    
+        if (!userId) {
+            return res.status(400).json({
+                message: 'Invalid user ID',
+                data: {}
+            });
+        }
+        userService.getProfile(userId, (error, result) => {
+            if (error) {
+                return res.status(error.status).json({
+                    message: error.message,
+                    data: {}
+                });
+            }
+            res.status(200).json({
+                message: 'Profile retrieved successfully.',
+                data: result.data
+            });
+        });
+    },
+    
     // Verwijder gebruiker op basis van ID
     delete: (req, res, next) => {
       const userId = parseInt(req.params.userId);
@@ -148,6 +167,7 @@ const userController = {
       });
     }
   };
+  
 
 module.exports = userController
 

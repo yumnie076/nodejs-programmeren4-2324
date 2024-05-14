@@ -1,6 +1,4 @@
-//
-// Authentication routes
-//
+
 const assert = require('assert')
 const jwt = require('jsonwebtoken')
 const jwtSecretKey = require('../util/config').secretkey
@@ -8,14 +6,14 @@ const routes = require('express').Router()
 const AuthController = require('../controllers/authentication.controller')
 const logger = require('../util/logger')
 
-//
-//
-//
+
+
+
 function validateLogin(req, res, next) {
     // Verify that we receive the expected input
     try {
         assert(
-            typeof req.body.emailAdress === 'string',
+            typeof req.body.emailAddress === 'string',
             'email must be a string.'
         )
         assert(
@@ -32,9 +30,8 @@ function validateLogin(req, res, next) {
     }
 }
 
-//
-//
-//
+
+
 function validateToken(req, res, next) {
     logger.info('validateToken called')
     logger.trace('Headers:', req.headers)
@@ -62,12 +59,6 @@ function validateToken(req, res, next) {
             }
             if (payload) {
                 logger.debug('token is valid', payload)
-                /**
-                 * User heeft toegang.
-                 * BELANGRIJK! Voeg UserId uit payload toe aan request,
-                 * zodat die voor ieder volgend endpoint beschikbaar is.
-                 * Je hebt dan altijd toegang tot de userId van de ingelogde gebruiker.
-                 */
                 req.userId = payload.userId
                 next()
             }

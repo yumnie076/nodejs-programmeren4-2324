@@ -20,6 +20,8 @@ logger.trace(dbConfig)
 
 const pool = mysql.createPool(dbConfig)
 
+
+
 pool.on('connection', function (connection) {
     logger.trace(
         `Connected to database '${connection.config.database}' on '${connection.config.host}:${connection.config.port}'`

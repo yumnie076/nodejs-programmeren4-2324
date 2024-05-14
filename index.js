@@ -2,8 +2,13 @@ require('dotenv').config()
 
 const express = require('express')
 const userRoutes = require('./src/routes/user.routes')
+const {
+    routes : authenticationRoutes,
+    validateToken,
+} = require('./src/routes/authentication.routes')
 const logger = require('./src/util/logger')
-const pool = require('./mysql-pool')
+const mealRoutes = require('./src/routes/meal.routes.js')
+
 
 
 const app = express()
@@ -11,38 +16,26 @@ const app = express()
 // express.json zorgt dat we de body van een request kunnen lezen
 app.use(express.json())
 
+app.use("/api",authenticationRoutes)
+app.use(userRoutes)
+app.use(mealRoutes)
+
 const port = process.env.PORT || 3000
 
 // Dit is een voorbeeld van een simpele route
 app.get('/api/info', (req, res) => {
     console.log('GET /api/info')
     const info = {
-        name: 'My Nodejs Express server',
-        version: '0.0.1',
-        description: 'This is a simple Nodejs Express server'
+        studentName: 'Yumnie Taouil',
+        studentNumber: '2211614',
+        description: 'this is the api for the share-a-meal app'
     }
     res.json(info)
 })
 
-app.get('/api/user', (req, res) => {
-    pool.query('SELECT * FROM `user`', (err, results) => {
-      if (err) {
-        return res.status(500).json({
-          status: 500,
-          message: 'Database error',
-          data: {}
-        });
-      }
-      res.status(200).json({
-        status: 200,
-        message: `Found ${results.length} users.`,
-        data: results
-      });
-    });
-  });
 
-// Hier komen alle routes
-app.use(userRoutes)
+
+
 
 // Route error handler
 app.use((req, res, next) => {
@@ -65,6 +58,8 @@ app.use((error, req, res, next) => {
 app.listen(port, () => {
     logger.info(`Server is running on port ${port}`)
 })
+
+
 
 // Deze export is nodig zodat Chai de server kan opstarten
 module.exports = app

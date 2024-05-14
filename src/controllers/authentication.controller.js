@@ -1,6 +1,4 @@
-//
-// Authentication controller
-//
+// Desc: Authentication controller for handling login and registration
 const logger = require('../util/logger')
 const authService = require('../services/authentication.service')
 
