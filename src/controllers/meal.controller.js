@@ -9,8 +9,8 @@ const mealController = {
 
     // Basisvalidatie van verplichte velden
     if (!meal.name || !meal.description || !meal.price || !meal.cookId) {
-      return next({
-        status: 400,
+      return res.status(401).json({
+        status: 401,
         message: 'Missing required fields: name, description, price, and cookId are required.',
         data: {}
       });
@@ -19,13 +19,13 @@ const mealController = {
     mealService.create(meal, (error, success) => {
       if (error) {
         return next({
-          status: error.status,
+          status: error.status || 500,
           message: error.message,
           data: {}
         });
       }
       res.status(201).json({
-        status: success.status,
+        status: 201,
         message: success.message,
         data: success.data
       });
@@ -37,14 +37,14 @@ const mealController = {
     mealService.getAll((error, success) => {
       if (error) {
         return next({
-          status: error.status,
+          status: error.status || 500,
           message: error.message,
           data: {}
         });
       }
       res.status(200).json({
         status: 200,
-        message: success.message,
+        message: 'Meals retrieved successfully.',
         data: success.data
       });
     });
@@ -54,7 +54,7 @@ const mealController = {
   getById: (req, res, next) => {
     const mealId = parseInt(req.params.mealId);
     if (isNaN(mealId)) {
-      return next({
+      return res.status(400).json({
         status: 400,
         message: 'Invalid meal ID',
         data: {}
@@ -63,15 +63,22 @@ const mealController = {
 
     mealService.getById(mealId, (error, success) => {
       if (error) {
+        if (error.message.includes('Meal not found')) {
+          return res.status(404).json({
+            status: 404,
+            message: 'Meal does not exist.',
+            data: {}
+          });
+        }
         return next({
-          status: error.status,
+          status: error.status || 500,
           message: error.message,
           data: {}
         });
       }
       res.status(200).json({
-        status: success.status,
-        message: success.message,
+        status: 200,
+        message: 'Meal details retrieved successfully.',
         data: success.data
       });
     });
@@ -81,7 +88,7 @@ const mealController = {
   update: (req, res, next) => {
     const mealId = parseInt(req.params.mealId);
     if (isNaN(mealId)) {
-      return next({
+      return res.status(400).json({
         status: 400,
         message: 'Invalid meal ID',
         data: {}
@@ -90,24 +97,38 @@ const mealController = {
 
     const updatedMeal = req.body;
     if (!updatedMeal.name || !updatedMeal.description || !updatedMeal.price) {
-      return next({
+      return res.status(400).json({
         status: 400,
         message: 'Missing required fields for update: name, description, and price.',
         data: {}
       });
     }
 
-    mealService.update(mealId, updatedMeal, (error, success) => {
+    mealService.update(mealId, updatedData, (error, success) => {
       if (error) {
+        if (error.message.includes('not the owner')) {
+          return res.status(403).json({
+            status: 403,
+            message: 'Not the owner of the data.',
+            data: {}
+          });
+        }
+        if (error.message.includes('Meal not found')) {
+          return res.status(404).json({
+            status: 404,
+            message: 'Meal does not exist.',
+            data: {}
+          });
+        }
         return next({
-          status: error.status,
+          status: error.status || 500,
           message: error.message,
           data: {}
         });
       }
       res.status(200).json({
-        status: success.status,
-        message: success.message,
+        status: 200,
+        message: 'Meal successfully updated.',
         data: success.data
       });
     });
@@ -122,9 +143,9 @@ const mealController = {
  
     mealService.getById(mealId, (error, meal) => {
       if (error) {
-        return next({
-          status: error.status || 500,
-          message: error.message || "Internal Server Error",
+        return res.status(400).json({
+          status: 400,
+          message: 'Invalid meal ID',
           data: {},
         });
       }
@@ -140,24 +161,38 @@ const mealController = {
         });
       }
  
-      mealService.delete(mealId, (error, result) => {
+      mealService.delete(mealId, (error, success) => {
         if (error) {
+          if (error.message.includes('Meal not found')) {
+            return res.status(404).json({
+              status: 404,
+              message: 'Meal does not exist.',
+              data: {}
+            });
+          }
+          if (error.message.includes('not the owner')) {
+            return res.status(403).json({
+              status: 403,
+              message: 'Not the owner of the data.',
+              data: {}
+            });
+          }
           return next({
             status: error.status || 500,
-            message: error.message || "Internal Server Error",
-            data: {},
+            message: error.message,
+            data: {}
           });
         }
         res.status(200).json({
           status: 200,
-          message: result.message,
-          data: {},
+          message: `Meal with ID ${mealId} successfully deleted.`,
+          data: {}
         });
       });
-    });
-  },
-};
-    
+    }
+  );
+}
+}
 
 
 module.exports = mealController;

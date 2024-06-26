@@ -1,5 +1,5 @@
 {
-    "name": "nodejs-programmeren4-2324 ",
+    "name": "nodejs-programmeren4-2324",
     "version": "0.0.1",
     "description": "Mijn eerste Express server",
     "main": "index.js",
@@ -7,7 +7,7 @@
         "build": "npm install",
         "start": "node index.js",
         "dev": "nodemon index.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "mocha test/*.js"
     },
     "keywords": [
         "nodejs",
