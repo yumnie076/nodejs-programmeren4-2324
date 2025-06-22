@@ -9,8 +9,8 @@ const mealController = {
 
     // Basisvalidatie van verplichte velden
     if (!meal.name || !meal.description || !meal.price || !meal.cookId) {
-      return res.status(401).json({
-        status: 401,
+      return res.status(400).json({
+        status: 400,
         message: 'Missing required fields: name, description, price, and cookId are required.',
         data: {}
       });
@@ -104,7 +104,7 @@ const mealController = {
       });
     }
 
-    mealService.update(mealId, updatedData, (error, success) => {
+    mealService.update(mealId, updatedMeal, (error, success) => {
       if (error) {
         if (error.message.includes('not the owner')) {
           return res.status(403).json({

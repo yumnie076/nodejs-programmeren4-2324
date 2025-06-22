@@ -155,7 +155,7 @@ const userService = {
         }
   
         callback(null, {
-          message: `User not found.`,
+          message: `User updated successfully.`,
           data: updatedUser
         });
       });

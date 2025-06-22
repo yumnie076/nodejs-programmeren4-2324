@@ -26,11 +26,11 @@ const userController = {
           });
         }
         if (success) {
-          res.status(401).json({
-            status: success.status,
+          res.status(201).json({
+            status: 201,
             message: success.message,
             data: success.data
-          });
+          })
         }
       });
     },
@@ -72,10 +72,10 @@ const userController = {
         }
         if (success) {
           res.status(200).json({
-            status: success.status,
+            status: 200,
             message: success.message,
             data: success.data
-          });
+          })
         }
       });
     },
@@ -111,10 +111,10 @@ const userController = {
         }
         if (success) {
           res.status(200).json({
-            status: success.status,
+            status: 200,
             message: success.message,
             data: success.data
-          });
+          })
         }
       });
     },
