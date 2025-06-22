@@ -17,24 +17,28 @@ function validateLogin(req, res, next) {
 }
 
 function validateToken(req, res, next) {
-    logger.info('validateToken called');
     const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return next({ status: 401, message: 'Authorization header missing or malformed!', data: {} });
+    if (!authHeader) {
+        return next({ status: 401, message: 'Authorization header missing!', data: {} });
     }
+    const token = authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : null;
 
-    const token = authHeader.substring(7);
+    if (!token) {
+        return next({ status: 401, message: 'Authorization header missing!', data: {} });
+    }
 
     jwt.verify(token, jwtSecretKey, (err, payload) => {
         if (err) {
-            return next({ status: 401, message: 'Invalid token!', data: {} });
+            return next({ status: 401, message: 'Not authorized!', data: {} });
         }
-
         req.userId = payload.userId;
         next();
     });
 }
+
+
 
 routes.post('/login', validateLogin, AuthController.login);
 
