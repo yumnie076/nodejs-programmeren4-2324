@@ -1,4 +1,3 @@
-// Desc: Authentication controller for handling login and registration
 const logger = require('../util/logger')
 const authService = require('../services/authentication.service')
 
@@ -6,6 +5,7 @@ const authController = {
     login: (req, res, next) => {
         const userCredentials = req.body
         logger.debug('login', userCredentials)
+
         authService.login(userCredentials, (error, success) => {
             if (error) {
                 return next({
@@ -14,6 +14,7 @@ const authController = {
                     data: {}
                 })
             }
+
             if (success) {
                 res.status(200).json({
                     status: success.status,

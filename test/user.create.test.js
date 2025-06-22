@@ -53,7 +53,8 @@ describe('UC-101 Inloggen', () => {
     it('TC-101-4 Gebruiker succesvol ingelogd', (done) => {
         chai.request(server)
             .post('/api/login')
-            .send({ emailAddress: 'john.doe@example.com', password: '' })
+            .send({ emailAddress: 'john.doe@example.com', password: 'secret' })
+
             .end((err, res) => {
                 console.log(res.body); 
                 res.should.have.status(200); 
