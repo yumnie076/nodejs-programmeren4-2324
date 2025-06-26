@@ -1,4 +1,5 @@
 const database = require('../dao/database'); 
+const database = require('../dao/mysqlDb'); 
 
 const userService = {
     create: (user, callback) => {
