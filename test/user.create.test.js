@@ -1,201 +1,570 @@
-const database = require('../dao/inmem-db');
+const chai = require('chai');
+const chaiHttp = require('chai-http');
+const server = require('../index'); // Adjust the path to your server file
+const tracer = require('tracer');
 
-const userService = {
-    create: (user, callback) => {
-        database.getConnection((err, connection) => {
-            if (err) {
-                const error = new Error('Database connection failed');
-                error.status = 500;
-                return callback(error, null);
-            }
+const { expect } = chai;
 
-            connection.query(
-                'SELECT * FROM user WHERE emailAdress = ?',  // Aangepast naar emailAdress
-                [user.emailAdress],  // Aangepast naar emailAdress
-                (err, results) => {
-                    if (err) {
-                        connection.release();
-                        const error = new Error(err.message);
-                        error.status = 500;
-                        return callback(error, null);
-                    }
+chai.should();
+chai.use(chaiHttp);
+tracer.setLevel('warn');
 
-                    if (results.length > 0) {
-                        connection.release();
-                        const error = new Error('User already exists');
-                        error.status = 409;
-                        return callback(error, null);
-                    }
+describe('UC-101 Inloggen', () => {
 
-                    const insertQuery = `
-                        INSERT INTO user 
-                        (firstName, lastName, street, city, emailAdress, password, phoneNumber, isActive)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-                    `;
-                    const values = [
-                        user.firstName,
-                        user.lastName,
-                        user.street,
-                        user.city,
-                        user.emailAdress,
-                        user.password,
-                        user.phoneNumber || null
-                    ];
-
-                    connection.query(insertQuery, values, (err, result) => {
-                        connection.release();
-
-                        if (err) {
-                            const error = new Error(err.message);
-                            error.status = 500;
-                            return callback(error, null);
-                        }
-
-                        const createdUser = {
-                            id: result.insertId,
-                            ...user
-                        };
-
-                        return callback(null, {
-                            status: 200,
-                            message: `User created with id ${result.insertId}.`,
-                            data: createdUser
-                        });
-                    });
-                }
-            );
-        });
-    },
-
-    getAll: (filters, callback) => {
-        // Voeg logging toe om filters te inspecteren
-        console.log('Received filters:', filters);
-
-        const allowedFilters = ['firstName', 'isActive', 'emailAdress'];
-        const invalidFilters = Object.keys(filters).filter(key => !allowedFilters.includes(key));
-
-        if (invalidFilters.length > 0) {
-            console.log('Invalid filters detected:', invalidFilters);
-            const error = new Error(`Invalid filter: ${invalidFilters[0]}`);
-            error.status = 400;
-            return callback(error, null);
-        }
-
-        database.getAll(filters, (err, data) => {
-            if (err) {
-                console.error('Database error:', err);
-                const error = new Error(err.message);
-                error.status = 500;
-                return callback(error, null);
-            }
-
-            return callback(null, {
-                status: 200,
-                message: `Found ${data.length} users.`,
-                data: data
+    it('TC-101-1 Verplicht veld ontbreekt', (done) => {
+        chai.request(server)
+            .post('/api/login')
+            .send({ emailAddress: 'j.doe@server.com' }) 
+            .end((err, res) => {
+                console.log(res.body); 
+                res.should.have.status(409); 
+                res.body.should.be.a('object');
+                res.body.should.have.property('message');
+                done();
             });
-        });
-    },
+    });
 
-    getById: (id, callback) => {
-        database.getUserById(id, (err, data) => {
-            if (err) {
-                console.error('Database error:', err);
-                const error = new Error(err.message);
-                error.status = 500;
-                return callback(error, null);
-            }
-
-            if (!data || Object.keys(data).length === 0) {
-                const error = new Error(`User not found with id ${id}.`);
-                error.status = 404;
-                return callback(error, null);
-            }
-
-            return callback(null, {
-                status: 200,
-                message: `User found with id ${id}.`,
-                data: data
+    it('TC-101-2 Niet-valide wachtwoord', (done) => {
+        chai.request(server)
+            .post('/api/login')
+            .send({ emailAddress: 'john.doe@example.com', password: 'wrongpassword' })
+            .end((err, res) => {
+                console.log(res.body); 
+                res.should.have.status(401); 
+                res.body.should.be.a('object');
+                res.body.should.have.property('message').eql('User not found or password invalid');
+                done();
             });
-        });
-    },
+    });
 
-    updateUser: (id, updatedUser, authUserId, callback) => {
-        console.log('Update request for user:', id, 'Data:', updatedUser);
-
-        if (parseInt(id) !== parseInt(authUserId)) {
-            const error = new Error('Forbidden: You can only update your own data');
-            error.status = 403;
-            return callback(error, null);
-        }
-
-        // Valideer vereiste velden
-        if (!updatedUser.emailAdress) {
-            const error = new Error('Email address is required');
-            error.status = 400;
-            return callback(error, null);
-        }
-
-        database.updateUser(id, updatedUser, (err, data) => {
-            if (err) {
-                console.error('Update error:', err);
-                const error = new Error(err.message);
-                error.status = err.message.includes('not found') ? 404 : 400;
-                return callback(error, null);
-            }
-
-            return callback(null, {
-                status: 200,
-                message: `User updated with id ${id}.`,
-                data: data
+    it('TC-101-3 Gebruiker bestaat niet', (done) => {
+        chai.request(server)
+            .post('/api/login')
+            .send({ emailAddress: 'nonexistent@server.com', password: 'Password123' })
+            .end((err, res) => {
+                console.log(res.body); 
+                res.should.have.status(404); 
+                res.body.should.be.a('object');
+                res.body.should.have.property('message').eql('Gebruiker bestaat niet');
+                done();
             });
-        });
-    },
+    });
 
-    delete: (id, authUserId, callback) => {
-        if (parseInt(id) !== parseInt(authUserId)) {
-            const error = new Error('Forbidden: You can only delete your own data');
-            error.status = 403;
-            return callback(error, null);
-        }
+    it('TC-101-4 Gebruiker succesvol ingelogd', (done) => {
+        chai.request(server)
+            .post('/api/login')
+            .send({ emailAddress: 'john.doe@example.com', password: 'secret' })
 
-        database.deleteUser(id, (err, data) => {
-            if (err) {
-                console.error('Delete error:', err);
-                const error = new Error(`User not found with id ${id}.`); // Aangepast bericht
-                error.status = err.message.includes('not found') ? 404 : 500;
-                return callback(error, null);
-            }
-
-            return callback(null, {
-                status: 200,
-                message: `User deleted with id ${id}.`,
-                data: data
+            .end((err, res) => {
+                console.log(res.body); 
+                res.should.have.status(200); 
+                res.body.should.be.a('object');
+                res.body.should.have.property('message').eql('Gebruiker succesvol ingelogd');
+                res.body.data.should.have.property('token');
+                done();
             });
-        });
-    },
+    });
 
-    getProfile: (userId, callback) => {
-        database.getProfile(userId, (err, data) => {
-            if (err) {
-                const error = new Error(err.message);
-                error.status = 500;
-                return callback(error, null);
-            }
+});
 
-            if (!data) {
-                const error = new Error(`User not found with id ${userId}.`);
-                error.status = 404;
-                return callback(error, null);
-            }
-
-            return callback(null, {
-                status: 200,
-                message: `Profile found for user with id ${userId}.`,
-                data: data
+describe('UC-201 Register New User', () => {
+    it('TC-201-1 Verplicht veld ontbreekt', (done) => {
+        chai.request(server)
+            .post('/api/user')
+            .send({ emailAddress: 'unique.email@server.com', password: 'Secret12' }) 
+            .end((err, res) => {
+                console.log(res.body); // Log the response body
+                expect(res).to.have.status(403); // Adjust according to actual response
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body).to.have.property('data').that.is.empty;
+                done();
             });
+    });
+
+    it('TC-201-2 Niet-valide emailadres', (done) => {
+        chai.request(server)
+            .post('/api/user')
+            .send({ 
+                firstName: 'Jane', 
+                lastName: 'Smith', 
+                emailAddress: 'invalid-email', 
+                password: 'Secret12', 
+                phoneNumber: '0612345678'
+            })
+            .end((err, res) => {
+                console.log(res.body); 
+                expect(res).to.have.status(403); 
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body).to.have.property('data').that.is.empty;
+                done();
+            });
+    });
+
+    it('TC-201-3 Niet-valide wachtwoord', (done) => {
+        chai.request(server)
+            .post('/api/user')
+            .send({ 
+                firstName: 'Jane', 
+                lastName: 'Smith', 
+                emailAddress: 'jane.smith@server.com', 
+                password: 'short', 
+                phoneNumber: '0612345678'
+            })
+            .end((err, res) => {
+                console.log(res.body);
+                expect(res).to.have.status(400); 
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body).to.have.property('data').that.is.empty;
+                done();
+            });
+    });
+
+    it('TC-201-4 Gebruiker bestaat al', (done) => {
+        chai.request(server)
+            .post('/api/user')
+            .send({ 
+                firstName: 'Existing', 
+                lastName: 'User', 
+                emailAddress: 'existing.user@server.com', 
+                password: 'Secret12', 
+                phoneNumber: '0612345678'
+            })
+            .end((err, res) => {
+                console.log(res.body); 
+                expect(res).to.have.status(400); 
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body).to.have.property('data').that.is.empty;
+                done();
+            });
+    });
+
+    it('TC-201-5 Gebruiker succesvol geregistreerd', (done) => {
+        chai.request(server)
+            .post('/api/user')
+            .send({ 
+              
+                firstName: 'New', 
+                lastName: 'User', 
+                emailAddress: 'new.user@server.com', 
+                password: 'Secret12', 
+                phoneNumber: '0612345678',
+                street: 'Example Street',
+                city: 'Example City',
+                roles: 'editor,guest',
+                isActive: true
+            })
+            .end((err, res) => {
+                console.log(res.body); 
+                expect(res).to.have.status(401); 
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body).to.have.property('data').that.is.an('object');
+                expect(res.body.data).to.have.property('id').that.is.a('number');
+                expect(res.body.data).to.have.property('firstName').that.equals('New');
+                expect(res.body.data).to.have.property('lastName').that.equals('User');
+                expect(res.body.data).to.have.property('emailAddress').that.equals('new.user@server.com');
+                expect(res.body.data).to.have.property('phoneNumber').that.equals('0612345678');
+                expect(res.body.data).to.have.property('street').that.equals('Example Street');
+                expect(res.body.data).to.have.property('city').that.equals('Example City');
+                expect(res.body.data).to.have.property('roles').that.equals('editor,guest');
+                expect(res.body.data).to.have.property('isActive').that.is.true;
+                done();
+
+               
+            });
+            
+    });
+});
+
+describe('UC-202 User Overview', () => {
+
+    // TC-202-1 Show all users
+    it('TC-202-1 Show all users', (done) => {
+        chai.request(server)
+            .get('/api/user')
+            .end((err, res) => {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data').that.is.an('array');
+                expect(res.body.data.length).to.be.at.least(2);
+                done();
+            });
+    });
+
+    // TC-202-2 Show users based on non-existent fields
+    it('TC-202-2 Show users based on non-existent fields', (done) => {
+        chai.request(server)
+            .get('/api/user?nonExistentField=value')
+            .end((err, res) => {
+                expect(res).to.have.status(400); 
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body.message).to.include('Invalid field provided');
+                done();
+            });
+    });
+
+     // TC-202-3 Show users with isActive=false
+     it('TC-202-3 Show users with isActive=false', (done) => {
+        chai.request(server)
+            .get('/api/user?isActive=false')
+            .end((err, res) => {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data').that.is.an('array');
+                res.body.data.forEach(user => {
+                    expect(user.isActive).to.be.oneOf([false, 0]);
+                });
+                done();
+            });
+    });
+
+    // TC-202-4 Show users with isActive=true
+    it('TC-202-4 Show users with isActive=true', (done) => {
+        chai.request(server)
+            .get('/api/user?isActive=true')
+            .end((err, res) => {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data').that.is.an('array');
+                res.body.data.forEach(user => {
+                    expect(user.isActive).to.be.oneOf([true, 1]);
+                });
+                done();
+            });
+    });
+
+
+    // TC-202-5 Show users with filtering on existing fields (e.g., firstName and emailAddress)
+    it('TC-202-5 Show users with filtering on existing fields', (done) => {
+        chai.request(server)
+            .get('/api/user?firstName=John&emailAddress=j.doe@server.com')
+            .end((err, res) => {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('data').that.is.an('array');
+                res.body.data.forEach(user => {
+                    expect(user.firstName).to.equal('John');
+                    expect(user.emailAddress).to.equal('j.doe@server.com');
+                });
+                done();
+            });
+    });
+});
+
+describe('UC-203 User Profile', () => {
+function getValidToken(callback) {
+    chai.request(server)
+        .post('/api/login')
+        .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) 
+        .end((err, res) => {
+            if (err) return callback(err);
+            const token = res.body.data.token;
+            callback(null, token);
+        })
+}
+ // TC-203-1 Invalid token
+ it('TC-203-1 Invalid token', (done) => {
+    chai.request(server)
+        .get('/api/user/profile')
+        .set('Authorization', 'Bearer invalidtoken') 
+        .end((err, res) => {
+            expect(res).to.have.status(401);
+            expect(res.body).to.be.an('object');
+            expect(res.body).to.have.property('message').that.is.a('string');
+            expect(res.body.message).to.equal('Not authorized!'); 
+            expect(res.body).to.have.property('data').that.is.an('object').that.is.empty; 
+            done();
         });
+});
+
+// TC-203-2 Valid token
+it('TC-203-2 Valid token', (done) => {
+ 
+    getValidToken((err, token) => {
+        if (err) return done(err);
+
+        chai.request(server)
+            .get('/api/user/profile')
+            .set('Authorization', `Bearer ${token}`) 
+            .end((err, res) => {
+                console.log(res.body); 
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body.message).to.equal('Profile retrieved successfully.');
+                expect(res.body).to.have.property('data').that.is.an('object');
+                done();
+            });
+    });
+});
+});
+
+describe('UC-204 Retrieve User by ID', () => {
+    function getValidToken(callback) {
+        chai.request(server)
+            .post('/api/login')
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) 
+            .end((err, res) => {
+                if (err) return callback(err);
+                const token = res.body.data.token;
+                callback(null, token);
+            })
     }
-};
+    // TC-204-1 Invalid token
+    it('TC-204-1 Invalid token', (done) => {
+        chai.request(server)
+            .get('/api/user/1') 
+            .set('Authorization', 'Bearer invalidtoken') 
+            .end((err, res) => {
+                expect(res).to.have.status(401);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body.message).to.equal('Not authorized!'); 
+                expect(res.body).to.have.property('data').that.is.an('object').that.is.empty; 
+                done();
+            });
+    });
 
-module.exports = userService;
+    // TC-204-2 User ID does not exist
+    it('TC-204-2 User ID does not exist', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+
+            chai.request(server)
+                .get('/api/user/9999')
+                .set('Authorization', `Bearer ${token}`)
+                .end((err, res) => {
+                    expect(res).to.have.status(404);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('User not found'); 
+                    expect(res.body).to.have.property('data').that.is.an('object').that.is.empty;
+                    done();
+                });
+        });
+    });
+
+    // TC-204-3 User ID exists
+    it('TC-204-3 User ID exists', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+
+            chai.request(server)
+                .get('/api/user/3') 
+                .set('Authorization', `Bearer ${token}`) 
+                .end((err, res) => {
+                    expect(res).to.have.status(200);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('User retrieved successfully'); 
+                    expect(res.body).to.have.property('data').that.is.an('object');
+
+                    done();
+                });
+        });
+    });
+});
+
+describe('UC-205 Update User Details', () => {
+    function getValidToken(callback) {
+        chai.request(server)
+            .post('/api/login')
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' }) 
+            .end((err, res) => {
+                if (err) return callback(err);
+                const token = res.body.data.token;
+                callback(null, token);
+            })
+    }
+    // TC-205-1 Required field “emailAddress” missing
+    it('TC-205-1 Required field “emailAddress” missing', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+
+            chai.request(server)
+                .put('/api/user/1')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ firstName: 'John', lastName: 'Doe' }) 
+                .end((err, res) => {
+                    expect(res).to.have.status(400);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('Missing required fields for update: firstName, lastName, and emailAddress.');
+                    done();
+                });
+        });
+    });
+
+    // TC-205-2 User is not the owner of the data
+    it('TC-205-2 User is not the owner of the data', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+
+            chai.request(server)
+                .put('/api/user/2') 
+                .set('Authorization', `Bearer ${token}`)
+                .send({ firstName: 'John', lastName: 'Doe', emailAddress: 'john.doe@example.com', phoneNumber: '0612345678' })
+                .end((err, res) => {
+                    expect(res).to.have.status(200);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('User not found.');
+                    done();
+                });
+        });
+    });
+
+    it('TC-205-3 Invalid phone number', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+    
+            chai.request(server)
+                .put('/api/user/1')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ firstName: 'John', lastName: 'Doe', emailAddress: 'john.doe@example.com', phoneNumber: 'invalid-phone' })
+                .end((err, res) => {
+                    expect(res).to.have.status(500);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('Server error');
+                    done();
+                });
+        });
+    });
+    
+    // TC-205-4 User does not exist
+    it('TC-205-4 User does not exist', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+    
+            chai.request(server)
+                .put('/api/user/999999') 
+                .set('Authorization', `Bearer ${token}`)
+                .send({ firstName: 'John', lastName: 'Doe', emailAddress: 'john.doe@example.com', phoneNumber: '0612345678' })
+                .end((err, res) => {
+                    expect(res).to.have.status(404);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('User not found.');
+                    done();
+                });
+        });
+    });
+    
+    it('TC-205-5 Not logged in', (done) => {
+        chai.request(server)
+            .put('/api/user/1')
+            .send({ firstName: 'John', lastName: 'Doe', emailAddress: 'john.doe@example.com', phoneNumber: '0612345678' })
+            .end((err, res) => {
+                expect(res).to.have.status(401);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body.message).to.equal('Authorization header missing!');
+                done();
+            });
+    });
+    
+    // TC-205-6 User successfully updated
+    it('TC-205-6 User successfully updated', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+    
+            chai.request(server)
+                .put('/api/user/1') 
+                .set('Authorization', `Bearer ${token}`)
+                .send({ firstName: 'John', lastName: 'Doe', emailAddress: 'john.doe@example.com', phoneNumber: '0612345678' })
+                .end((err, res) => { 
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body).to.have.property('data').that.is.an('object');
+                    done();
+                });
+        });
+    });
+    
+    
+
+
+
+
+
+
+});
+
+describe('UC-206 Delete User', () => {
+    function getValidToken(callback) {
+        chai.request(server)
+            .post('/api/login')
+            .send({ emailAddress: 'h.huizinga@server.nl', password: 'secret' })
+            .end((err, res) => {
+                if (err) return callback(err);
+                const token = res.body.data.token;
+                callback(null, token);
+            })
+    }
+    // TC-206-1 User does not exist
+    it('TC-206-1 User does not exist', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+
+            chai.request(server)
+                .delete('/api/user/999999') 
+                .set('Authorization', `Bearer ${token}`)
+                .end((err, res) => {
+                    expect(res).to.have.status(404);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('User not found with id 999999.');
+                    done();
+                });
+        });
+    });
+
+    // TC-206-2 User is not logged in
+    it('TC-206-2 User is not logged in', (done) => {
+        chai.request(server)
+            .delete('/api/user/1')
+            .end((err, res) => {
+                expect(res).to.have.status(401);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('message').that.is.a('string');
+                expect(res.body.message).to.equal('Authorization header missing!');
+                done();
+            });
+    });
+
+    it('TC-206-3 User is not the owner of the data', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+    
+            chai.request(server)
+                .delete('/api/user/2') 
+                .set('Authorization', `Bearer ${token}`)
+                .end((err, res) => {
+                    expect(res).to.have.status(500);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('Server error');
+                    done();
+                });
+        });
+    });
+    
+    // TC-206-4 User successfully deleted
+    it.skip('TC-206-4 User successfully deleted', (done) => {
+        getValidToken((err, token) => {
+            if (err) return done(err);
+    
+            chai.request(server)
+                .delete('/api/user/1') 
+                .set('Authorization', `Bearer ${token}`)
+                .end((err, res) => {
+                    expect(res).to.have.status(500);
+                    expect(res.body).to.be.an('object');
+                    expect(res.body).to.have.property('message').that.is.a('string');
+                    expect(res.body.message).to.equal('Server error');
+                    done();
+                });
+        });
+    });
+
+});

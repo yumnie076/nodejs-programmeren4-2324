@@ -1,29 +1,26 @@
 const logger = require('../util/logger')
 const authService = require('../services/authentication.service')
 
-const authController = {
-    login: (req, res, next) => {
-        const userCredentials = req.body
-        logger.debug('login', userCredentials)
+let authController = {
+    login: (req, res) => {
+        const { emailAdress, password } = req.body;
 
-        authService.login(userCredentials, (error, success) => {
+        authService.login(emailAdress, password, (error, success) => {
             if (error) {
-                return next({
-                    status: error.status,
-                    message: error.message,
+                return res.status(error.status || 500).json({
+                    status: error.status || 500,
+                    message: error.message || 'Login failed',
                     data: {}
-                })
+                });
             }
 
-            if (success) {
-                res.status(200).json({
-                    status: success.status,
-                    message: success.message,
-                    data: success.data
-                })
-            }
-        })
+            res.status(success.status).json({
+                status: success.status,
+                message: success.message,
+                data: success.data
+            });
+        });
     }
-}
+};
 
-module.exports = authController
+module.exports = authController;
