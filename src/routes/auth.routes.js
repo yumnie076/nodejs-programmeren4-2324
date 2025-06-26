@@ -1,13 +1,14 @@
-const express = require('express');
-const routes = express.Router();
+const express = require('express')
+const assert = require('assert')
 const chai = require('chai')
 chai.should()
-const jwt = require('jsonwebtoken');
-const assert = require('assert');
-const AuthController = require('../controllers/authentication.controller');
-const logger = require('../util/logger');
-const jwtSecretKey = require('../util/config').secretkey;
+const router = express.Router()
+const authController = require('../controllers/auth.controller')
+const jwt = require("jsonwebtoken");
+const jwtSecretKey = require("../util/config").secretkey;
+const logger = require("../util/logger");
 
+ 
 function validateLogin(req, res, next) {
   try {
     if (!req.body.emailAdress || !req.body.password) {
@@ -67,3 +68,4 @@ router.post('/api/login', validateLogin, authController.login)
  
 module.exports = { router, validateToken };
  
+

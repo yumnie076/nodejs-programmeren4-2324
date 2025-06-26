@@ -1,11 +1,13 @@
-const express = require('express');
-const router = express.Router();
-const userController = require('../controllers/user.controller');
-const { validateToken } = require('./authentication.routes');
+const express = require('express')
 const assert = require('assert')
 const chai = require('chai')
 chai.should()
+const router = express.Router()
+const userController = require('../controllers/user.controller')
 const database = require('../dao/database') 
+const userService = require('../services/user.service')
+const { validateToken } = require('../routes/auth.routes');
+
 // Importeer de juiste database-module of -object
 
 
@@ -135,7 +137,8 @@ router.get('/api/user/:userId', validateToken, userController.getById)
 
 
 // Tijdelijke routes om niet bestaande routes op te vangen (tests)
-router.put('/api/user/:userId', validateEmail, validateToken, validatePhoneNumber, userController.updateUser)
+router.put('/api/user/:userId', validateEmail, validateToken, validatePhoneNumber, userController.update)
+
 router.delete('/api/user/:userId', validateToken, userController.delete)
 
 module.exports = router

@@ -1,5 +1,5 @@
 const database = require('../dao/database');
-const logger = require('../util/logger');
+
 
 const mealService = {
     

@@ -1,9 +1,4 @@
-const { get } = require('../..')
 const database = require('../dao/database'); 
-
-const logger = require('../util/logger')
-const pool = require('../../mysql-pool')
-
 
 const userService = {
     create: (user, callback) => {

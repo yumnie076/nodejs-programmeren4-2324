@@ -1,9 +1,3 @@
-// Desc: Authentication service for user login and registration
-const jwt = require('jsonwebtoken')
-const db = require('../dao/mysql-db')
-// const validateEmail = require('../util/emailvalidator')
-const logger = require('../util/logger')
-const jwtSecretKey = require('../util/config').secretkey
 const database = require('../dao/database');
 
 const authService = {

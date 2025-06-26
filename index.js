@@ -1,43 +1,48 @@
-require('dotenv').config()
-
 const express = require('express')
 const userRoutes = require('./src/routes/user.routes')
+const mealRoutes = require('./src/routes/meal.routes')
 const {
-    routes : authenticationRoutes,
+    router: authRoutes,
     validateToken,
-} = require('./src/routes/authentication.routes')
-const logger = require('./src/util/logger')
-const mealRoutes = require('./src/routes/meal.routes.js')
-
-
+  } = require("./src/routes/auth.routes");
+require('dotenv').config()
 
 const app = express()
 
 // express.json zorgt dat we de body van een request kunnen lezen
 app.use(express.json())
 
-app.use("/api",authenticationRoutes)
+app.use(authRoutes)
 app.use(userRoutes)
 app.use(mealRoutes)
 
-const port = process.env.PORT || 3000
 
-// Dit is een voorbeeld van een simpele route
+const port = process.env.PORT || 3000;
+
+
+
+app.all('*', (req, res, next) => {
+    console.log('Request:', req.method, req.url)
+    next()
+})
+
+app.get('/', function (req, res) {
+    res.json({ message: "Welcome to Amin's Node.js Express server!" })
+})
+
 app.get('/api/info', (req, res) => {
     console.log('GET /api/info')
     const info = {
-        studentName: 'Yumnie Taouil',
-        studentNumber: '2211614',
-        description: 'this is the api for the share-a-meal app'
+        name: 'My Nodejs Express server',
+        version: '0.0.1',
+        description: 'This is a simple Nodejs Express server'
     }
     res.json(info)
 })
 
+// Hier komen alle routes
 
-
-
-
-// Route error handler
+// Hier komt de route error handler te staan!
 app.use((req, res, next) => {
     next({
         status: 404,
@@ -56,10 +61,8 @@ app.use((error, req, res, next) => {
 })
 
 app.listen(port, () => {
-    logger.info(`Server is running on port ${port}`)
+    console.log(`Server is running on port ${port}`)
 })
-
-
 
 // Deze export is nodig zodat Chai de server kan opstarten
 module.exports = app

@@ -1,10 +1,14 @@
-
-const express = require('express');
-const router = express.Router();
-const mealController = require('../controllers/meal.controller');
-const { validateToken } = require('./authentication.routes')
+const express = require('express')
+const assert = require('assert')
 const chai = require('chai')
 chai.should()
+const router = express.Router()
+const mealController = require('../controllers/meal.controller')
+const database = require('../dao/database')
+
+const mealService = require('../services/meal.service')
+const { validateToken } = require('./auth.routes')
+
 
 
 function validateMissingMealFields(req, res, next) {
