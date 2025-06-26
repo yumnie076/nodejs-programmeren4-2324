@@ -108,7 +108,7 @@ getUserById(id, callback) {
             city: newData.city || existingUser.city,
             isActive: newData.isActive !== undefined ? newData.isActive : existingUser.isActive,
         };
-
+        delete updatedUser.roles; 
         const sql = `
             UPDATE user
             SET firstName = ?, lastName = ?, emailAdress = ?, password = ?, phoneNumber = ?, street = ?, city = ?, isActive = ?

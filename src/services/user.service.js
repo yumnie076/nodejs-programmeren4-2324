@@ -124,38 +124,38 @@ const userService = {
 
 
     updateUser: (id, updatedUser, authUserId, callback) => {
-        console.log('Update request for user:', id, 'Data:', updatedUser);
-        
-        if (parseInt(id) !== parseInt(authUserId)) {
-            const error = new Error('Forbidden: You can only update your own data');
-            error.status = 403;
+    console.log(' updateUser aangeroepen:', { id, updatedUser, authUserId });
+
+    if (parseInt(id) !== parseInt(authUserId)) {
+        const error = new Error('Forbidden: You can only update your own data');
+        error.status = 403;
+        return callback(error, null);
+    }
+
+    if (!updatedUser.emailAdress) {
+        const error = new Error('Email address is required');
+        error.status = 400;
+        return callback(error, null);
+    }
+
+    database.updateUser(id, updatedUser, (err, data) => {
+        if (err) {
+            console.error(' updateUser database error:', err);
+            const error = new Error(err.message);
+            error.status = err.message.includes('not found') ? 404 : 400;
             return callback(error, null);
         }
-    
-        
 
-        // Valideer vereiste velden
-        if (!updatedUser.emailAdress) {
-             return callback(new Error('Email address is required'), null);
-        }
+        console.log(' updateUser succesvol:', data);
 
-    
-        database.updateUser(id, updatedUser, (err, data) => {
-            if (err) {
-                console.error('Update error:', err);
-                const error = new Error(err.message);
-                error.status = err.message.includes('not found') ? 404 : 400;
-                return callback(error, null);
-            }
-    
-            return callback(null, {
-                status: 200,
-              message: `User with id ${id} successfully updated.`,
-
-                data: data
-            });
+        return callback(null, {
+            status: 200,
+            message: `User with id ${id} successfully updated.`,
+            data: data
         });
-    },
+    });
+},
+
 
     delete: (id, authUserId, callback) => {
         if (parseInt(id) !== parseInt(authUserId)) {
