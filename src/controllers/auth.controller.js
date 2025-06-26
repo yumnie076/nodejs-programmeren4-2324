@@ -1,5 +1,4 @@
-const logger = require('../util/logger')
-const authService = require('../services/auth.service')
+const authService = require('../services/auth.service');
 
 let authController = {
     login: (req, res) => {

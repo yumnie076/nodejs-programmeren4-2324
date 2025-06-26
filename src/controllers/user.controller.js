@@ -1,30 +1,21 @@
-const userService = require('../services/user.service')
+const userService = require('../services/user.service');
 
-const userController = {
-    create: (req, res, next) => {
+let userController = {
+    create: (req, res) => {
         const user = req.body;
-
-        if (
-            !user.firstName || !user.lastName || !user.emailAddress ||
-            !user.phoneNumber || !user.password || !user.roles
-        ) {
-            return next({
-                status: 400,
-                message: 'Missing required user fields.',
-                data: {}
-            });
-        }
-
+        console.log('Creating user:', user);
+    
         userService.create(user, (error, success) => {
             if (error) {
-                return next({
-                    status: error.status,
-                    message: error.message,
+                console.error('Create user error:', error);
+                return res.status(error.status || 500).json({
+                    status: error.status || 500,
+                    message: error.message || 'Internal server error',
                     data: {}
                 });
             }
-            res.status(201).json({
-                status: 201,
+            res.status(success.status).json({
+                status: success.status,
                 message: success.message,
                 data: success.data
             });
@@ -33,49 +24,14 @@ const userController = {
 
     getAll: (req, res) => {
         const filters = req.query;
-        userService.getAll(filters, (error, result) => {
+        userService.getAll(filters, (error, success) => {
             if (error) {
-                return res.status(error.status || 400).json({ message: error.message });
+                return res.status(error.status || 400).json({
+                    status: error.status || 400,
+                    message: error.message || 'Invalid filters',
+                    data: {}
+                });
             }
-            res.status(200).json({
-                status: 200,
-                message: 'Users retrieved successfully',
-                data: result
-            });
-        });
-    },
-
-    getById: (req, res, next) => {
-        const userId = parseInt(req.params.userId);
-        if (isNaN(userId)) {
-            return next({ status: 400, message: 'Invalid user ID', data: {} });
-        }
-
-        userService.getById(userId, (error, success) => {
-            if (error) return next(error);
-            res.status(200).json({ status: 200, message: success.message, data: success.data });
-        });
-    },
-
-    update: (req, res, next) => {
-        const userId = parseInt(req.params.userId);
-        const userIdFromToken = req.userId;
-
-        if (userId !== userIdFromToken) {
-            return next({ status: 403, message: 'Je mag alleen je eigen profiel aanpassen.', data: {} });
-        }
-
-        const updatedData = req.body;
-        if (!updatedData.firstName || !updatedData.lastName || !updatedData.emailAddress) {
-            return next({
-                status: 400,
-                message: 'Missing required fields for update.',
-                data: {}
-            });
-        }
-
-        userService.update(userId, updatedData, (error, success) => {
-            if (error) return next(error);
             res.status(200).json({
                 status: 200,
                 message: success.message,
@@ -84,33 +40,112 @@ const userController = {
         });
     },
 
-    delete: (req, res, next) => {
-        const userId = parseInt(req.params.userId);
-        const userIdFromToken = req.userId;
-
-        if (userId !== userIdFromToken) {
-            return next({ status: 403, message: 'Je mag alleen je eigen account verwijderen.', data: {} });
-        }
-
-        userService.delete(userId, (error, success) => {
-            if (error) return next(error);
-            res.status(204).send();
+    getById: (req, res) => {
+        const userId = req.params.userId;
+        userService.getById(userId, (error, success) => {
+            if (error) {
+                return res.status(error.status || 500).json({
+                    status: error.status || 500,
+                    message: error.message || 'Error occurred',
+                    data: null
+                });
+            }
+            if (success.data === null) {
+                return res.status(404).json({
+                    status: 404,
+                    message: success.message,
+                    data: null
+                });
+            }
+            res.status(success.status).json({
+                status: success.status,
+                message: success.message,
+                data: success.data
+            });
         });
     },
 
-    getProfile: (req, res, next) => {
-        const userId = req.userId;
+    updateUser: (req, res) => {
+        const userId = req.params.userId;
+        const updatedUser = req.body;
+        const authUserId = req.userId;
 
-        userService.getProfile(userId, (error, result) => {
+        
+
+        userService.updateUser(userId, updatedUser, authUserId, (error, success) => {
             if (error) {
-                return res.status(error.status).json({
-                    message: error.message,
+                return res.status(error.status || 500).json({
+                    status: error.status || 500,
+                    message: error.message || 'An error occurred',
+                    data: {}
+                });
+            }
+            if (!success.data) {
+                return res.status(404).json({
+                    status: 404,
+                    message: success.message,
+                    data: {}
+                });
+            }
+            res.status(success.status).json({
+                status: success.status,
+                message: success.message,
+                data: success.data
+            });
+        });
+    },
+
+    delete: (req, res) => {
+        const userId = req.params.userId;
+        const authUserId = req.userId;
+
+        console.log(`Controller - authUserId: ${authUserId}, userId: ${userId}`);
+
+        userService.delete(userId, authUserId, (error, success) => {
+            if (error) {
+                return res.status(error.status || 500).json({
+                    status: error.status || 500,
+                    message: error.message || 'An error occurred',
+                    data: {}
+                });
+            }
+            if (!success.data) {
+                return res.status(404).json({
+                    status: 404,
+                    message: success.message,
+                    data: {}
+                });
+            }
+            res.status(success.status).json({
+                status: success.status,
+                message: success.message,
+                data: success.data
+            });
+        });
+    },
+
+    getProfile: (req, res) => {
+        const userId = req.userId;
+        console.log('userId by controller', userId);
+        userService.getProfile(userId, (error, success) => {
+            if (error) {
+                return res.status(error.status || 500).json({
+                    status: error.status || 500,
+                    message: error.message || 'An error occurred',
+                    data: {}
+                });
+            }
+            if (!success.data) {
+                return res.status(404).json({
+                    status: 404,
+                    message: success.message,
                     data: {}
                 });
             }
             res.status(200).json({
-                message: 'Profile retrieved successfully.',
-                data: result.data
+                status: 200,
+                message: success.message,
+                data: success.data
             });
         });
     }

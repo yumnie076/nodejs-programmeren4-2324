@@ -1,6 +1,5 @@
-
-const mealService = require('../services/meal.service');
-const logger = require('../util/logger');
+const { createMeal } = require('../dao/database')
+const mealService = require('../services/meal.service')
 
 let mealController = {
     getAllMeals: (req, res, next) => {
