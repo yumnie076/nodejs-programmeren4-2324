@@ -1,220 +1,210 @@
 const { get } = require('../..')
-const database = require('../dao/inmem-db')
+const database = require('../dao/database'); 
+
 const logger = require('../util/logger')
 const pool = require('../../mysql-pool')
 
 
-
 const userService = {
-    // Maak een nieuwe gebruiker aan
     create: (user, callback) => {
-      const query = `
-        INSERT INTO \`user\` (firstName, lastName, isActive, emailAddress, password, phoneNumber, roles, street, city)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      const values = [
-        user.firstName,
-        user.lastName,
-        user.isActive || 1,
-        user.emailAddress,
-        user.password || 'secret',
-        user.phoneNumber || '06-12345678',
-        user.roles || 'editor,guest',
-        user.street || '',
-        user.city || ''
-      ];
-
-
-      pool.query(query, values, (err, results) => {
-        if (err) {
-          logger.info('Error creating user:', err.message || 'unknown error');
-          return callback({
-            status: 500,
-            message: 'Server error'
-          }, null);
-        }
-  
-        const newUser = {
-          id: results.insertId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          isActive: user.isActive,
-          emailAddress: user.emailAddress,
-          phoneNumber: user.phoneNumber,
-          roles: user.roles,
-          street: user.street,
-          city: user.city
-        };
-  
-        logger.trace(`User created with id ${newUser.id}.`);
-        callback(null, {
-          message: `User created with id ${newUser.id}.`,
-          data: newUser 
-        });
-      });
-    },
-  
-    // Haal alle gebruikers op met een filter op basis van parameters
-    
-    getAll: (filters, callback) => {
-        let sql = "SELECT * FROM user";
-        const values = [];
-        const conditions = [];
-        const validFields = ["id", "firstName", "lastName", "emailAddress", "isActive"];
-
-        for (const [field, value] of Object.entries(filters)) {
-            if (!validFields.includes(field)) {
-                // Immediately return an error if an invalid field is found
-                return callback({ status: 400, message: `Invalid field provided: ${field}` }, null);
-            }
-
-            let fieldValue = value;
-            if (field === "isActive") {
-                fieldValue = value === "true" || value === true ? 1 : 0;
-            }
-
-            conditions.push(`${field} = ?`);
-            values.push(fieldValue);
-        }
-
-        if (conditions.length > 0) {
-            sql += " WHERE " + conditions.join(" AND ");
-        }
-
-        pool.query(sql, values, (err, results) => {
+        database.getConnection((err, connection) => {
             if (err) {
-                return callback({ status: 500, message: 'Internal Server Error' }, null);
+                const error = new Error('Database connection failed');
+                error.status = 500;
+                return callback(error, null);
             }
-            return callback(null, results);
+
+            connection.query(
+                'SELECT * FROM user WHERE emailAdress = ?',  // Aangepast naar emailAdress
+                [user.emailAdress],  // Aangepast naar emailAdress
+                (err, results) => {
+                    if (err) {
+                        connection.release();
+                        const error = new Error(err.message);
+                        error.status = 500;
+                        return callback(error, null);
+                    }
+
+                    if (results.length > 0) {
+                        connection.release();
+                        const error = new Error('User already exists');
+                        error.status = 409;
+                        return callback(error, null);
+                    }
+
+                    const insertQuery = `
+                        INSERT INTO user 
+                        (firstName, lastName, street, city, emailAdress, password, phoneNumber, isActive)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                    `;
+                    const values = [
+                        user.firstName,
+                        user.lastName,
+                        user.street,
+                        user.city,
+                        user.emailAdress,
+                        user.password,
+                        user.phoneNumber || null
+                    ];
+
+                    connection.query(insertQuery, values, (err, result) => {
+                        connection.release();
+
+                        if (err) {
+                            const error = new Error(err.message);
+                            error.status = 500;
+                            return callback(error, null);
+                        }
+
+                        const createdUser = {
+                            id: result.insertId,
+                            ...user
+                        };
+
+                        return callback(null, {
+                            status: 200,
+                            message: `User created with id ${result.insertId}.`,
+                            data: createdUser
+                        });
+                    });
+                }
+            );
         });
     },
 
+    getAll: (filters, callback) => {
+        // Voeg logging toe om filters te inspecteren
+        console.log('Received filters:', filters);
+        
+        const allowedFilters = ['firstName', 'lastName', 'isActive', 'emailAdress'];
+
+        const invalidFilters = Object.keys(filters).filter(key => !allowedFilters.includes(key));
+        
+        if (invalidFilters.length > 0) {
+            console.log('Invalid filters detected:', invalidFilters);
+            const error = new Error(`Invalid filter: ${invalidFilters[0]}`);
+            error.status = 400;
+            return callback(error, null);
+        }
     
+        database.getAll(filters, (err, data) => {
+            if (err) {
+                console.error('Database error:', err);
+                const error = new Error(err.message);
+                error.status = 500;
+                return callback(error, null);
+            }
     
-    
-    
-  
-    // Haal een gebruiker op basis van id
+            return callback(null, {
+                status: 200,
+                message: `Found ${data.length} users.`,
+                data: data
+            });
+        });
+    },
+
     getById: (id, callback) => {
-      const query = 'SELECT * FROM `user` WHERE id = ?';
-  
-      pool.query(query, [id], (err, results) => {
+    database.getUserById(id, (err, data) => {
         if (err) {
-          return callback({
-            status: 500,
-            message: 'Server error'
-          }, null);
-        }
-  
-        if (results.length === 0) {
-          return callback({
-            status: 404,
-            message: `User not found`
-          }, null);
-        }
-  
-        callback(null, {
-          message: `User retrieved successfully`,
-          data: results[0]
-        });
-      });
-    },
-  
-    // Update een gebruiker op basis van id
-    update: (id, updatedUser, callback) => {
-      const query = `
-        UPDATE \`user\` SET firstName = ?, lastName = ?, isActive = ?, emailAddress = ?, password = ?, phoneNumber = ?, roles = ?, street = ?, city = ?
-        WHERE id = ?
-      `;
-      const values = [
-        updatedUser.firstName,
-        updatedUser.lastName,
-        updatedUser.isActive,
-        updatedUser.emailAddress,
-        updatedUser.password,
-        updatedUser.phoneNumber,
-        updatedUser.roles,
-        updatedUser.street,
-        updatedUser.city,
-        id
-      ];
-  
-      pool.query(query, values, (err, results) => {
-        if (err) {
-          return callback({
-            status: 500,
-            message: 'Server error'
-          }, null);
-        }
-  
-        if (results.affectedRows === 0) {
-          return callback({
-            status: 404,
-            message: `User not found.`
-          }, null);
-        }
-  
-        callback(null, {
-          message: `User updated successfully.`,
-          data: updatedUser
-        });
-      });
-    },
-
-  getProfile: (userId, callback) => {
-    const query = 'SELECT id FROM `user` WHERE id = ?'; // Modified to fetch only the 'id' column
-
-    pool.query(query, [userId], (err, results) => {
-        if (err) {
-            logger.error('Error fetching user profile:', err);
-            return callback({
-                status: 500,
-                message: 'Server error: ' + err.message // Include the SQL error message for better debugging
-            }, null);
+            console.error('Database error:', err);
+            const error = new Error(err.message);
+            error.status = 500;
+            return callback(error, null);
         }
 
-        if (results.length === 0) {
-            logger.info(`User not found with id ${userId}`); // Corrected variable reference
-            return callback({
-                status: 404,
-                message: `User not found with id ${userId}.` // Corrected variable reference
-            }, null);
+        if (data === null) {
+            const error = new Error(`User not found with id ${id}.`);
+            error.status = 404;
+            return callback(error, null);
         }
 
-        const userProfile = results[0]; // This will now contain only the 'id' property
-        logger.trace(`Profile retrieved for user id ${userId}`); // Corrected variable reference
-        callback(null, {
-            message: `Profile retrieved successfully.`,
-            data: userProfile // This now sends back only the ID to the client
+        return callback(null, {
+            status: 200,
+            message: `User found with id ${id}.`,
+            data: data
         });
     });
 },
 
-  
-    // Verwijder een gebruiker op basis van id
-    delete: (id, callback) => {
-      const query = 'DELETE FROM `user` WHERE id = ?';
-  
-      pool.query(query, [id], (err, results) => {
-        if (err) {
-          return callback({
-            status: 500,
-            message: 'Server error'
-          }, null);
-        }
-  
-        if (results.affectedRows === 0) {
-          return callback({
-            status: 404,
-            message: `User not found with id ${id}.`
-          }, null);
-        }
-  
-        callback(null, {
-          message: `User deleted with id ${id}.`
-        });
-      });
-    }
-  };
 
-module.exports = userService
+    updateUser: (id, updatedUser, authUserId, callback) => {
+        console.log('Update request for user:', id, 'Data:', updatedUser);
+        
+        if (parseInt(id) !== parseInt(authUserId)) {
+            const error = new Error('Forbidden: You can only update your own data');
+            error.status = 403;
+            return callback(error, null);
+        }
+    
+        
+
+        // Valideer vereiste velden
+        if (!updatedUser.emailAdress) {
+             return callback(new Error('Email address is required'), null);
+        }
+
+    
+        database.updateUser(id, updatedUser, (err, data) => {
+            if (err) {
+                console.error('Update error:', err);
+                const error = new Error(err.message);
+                error.status = err.message.includes('not found') ? 404 : 400;
+                return callback(error, null);
+            }
+    
+            return callback(null, {
+                status: 200,
+              message: `User with id ${id} successfully updated.`,
+
+                data: data
+            });
+        });
+    },
+
+    delete: (id, authUserId, callback) => {
+        if (parseInt(id) !== parseInt(authUserId)) {
+            const error = new Error('Forbidden: You can only delete your own data');
+            error.status = 403;
+            return callback(error, null);
+        }
+    
+        database.deleteUser(id, (err, data) => {
+            if (err) {
+                console.error('Delete error:', err);
+                const error = new Error(`User not found with id ${id}.`); // Aangepast bericht
+                error.status = err.message.includes('not found') ? 404 : 500;
+                return callback(error, null);
+            }
+    
+            return callback(null, {
+                status: 200,
+                message: `User deleted with id ${id}.`,
+                data: data
+            });
+        });
+    },
+
+    getProfile: (userId, callback) => {
+        database.getProfile(userId, (err, data) => {
+            if (err) {
+                const error = new Error(err.message);
+                error.status = 500;
+                return callback(error, null);
+            }
+
+            if (!data) {
+                const error = new Error(`User not found with id ${userId}.`);
+                error.status = 404;
+                return callback(error, null);
+            }
+
+            return callback(null, {
+                status: 200,
+                message: `Profile found for user with id ${userId}.`,
+                data: data
+            });
+        });
+    }
+};
+
+module.exports = userService;

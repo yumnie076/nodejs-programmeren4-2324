@@ -1,146 +1,117 @@
-
-const pool = require('../../mysql-pool');
+const database = require('../dao/database');
 const logger = require('../util/logger');
 
 const mealService = {
-  // Maak een nieuwe maaltijd aan
-  create: (meal, callback) => {
-    const query = `
-      INSERT INTO \`meal\` (name, description, isActive, isVega, isVegan, isToTakeHome, dateTime, maxAmountOfParticipants, price, imageUrl, cookId, allergenes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    const values = [
-      meal.name,
-      meal.description,
-      meal.isActive || 1,
-      meal.isVega || 0,
-      meal.isVegan || 0,
-      meal.isToTakeHome || 1,
-      meal.dateTime,
-      meal.maxAmountOfParticipants,
-      meal.price,
-      meal.imageUrl || '',
-      meal.cookId,
-      meal.allergenes || ''
-    ];
+    
+    getAllMeals: (callback) => {
+        database.getAllMeals((err, data) => {
+            if (err) {
+                callback(err, null)
+            } else {
+                console.log(data)
+                callback(null, {
+                    message: `Found ${data.length} meals.`,
+                    data: data
+                })
+            }
+        })
+    },
 
-    pool.query(query, values, (err, results) => {
-      if (err) {
-        logger.error('Error creating meal:', err);
-        return callback({
-          status: 500,
-          message: 'Database error'
-        }, null);
-      }
+    getMealById: (id, callback) => {
+        database.getMealById(id, (err, data) => {
+            if (err) {
+                callback(err, null);
+            } else {
+                if (data) {
+                    callback(null, {
+                        message: `Found meal with ID ${id}.`,
+                        data: data
+                    });
+                } else {
+                    callback({
+                        status: 404,
+                        message: `Meal with ID ${id} not found.`
+                    }, null);
+                }
+            }
+        });
+    },
 
-      callback(null, {
-        status: 201,
-        message: `Meal created`,
-        data: { id: results.insertId }
-      });
-    });
-  },
+    deleteMeal: (mealId, userId, callback) => {
+        database.getCookIdByMealId(mealId, (err, cookId) => {
+            if (err) {
+                callback(err, null);
+            } else if (cookId !== userId) {
+                callback({ status: 403, message: "Forbidden: You can only delete your own meals" }, null);
+            } else {
+                database.deleteMeal(mealId, (err, data) => {
+                    if (err) {
+                        callback(err, null);
+                    } else {
+                        callback(null, {
+                            message: `Meal with ID ${mealId} deleted successfully.`,
+                            data: data
+                        });
+                    }
+                });
+            }
+        });
+    },
 
-  // Haal alle maaltijden op
-  getAll: (callback) => {
-    const query = 'SELECT * FROM `meal`';
+    createMeal: (meal, callback) => {
+        database.createMeal(meal, (err, data) => {
+            if (err) {
+                callback(err, null)
+            } else {
+                callback(null, {
+                    message: `Meal created with ID ${data.id}.`,
+                    data: data
+                })
+            }
+        })
+    },
 
-    pool.query(query, (err, results) => {
-      if (err) {
-        logger.error('Error fetching meals:', err);
-        return callback({
-          status: 500,
-          message: 'Database error'
-        }, null);
-      }
+    updateMeal: (id, updatedMeal, authUserId, callback) => {
+        console.log(`authUserId: ${authUserId}, mealId: ${id}`); // Log the IDs for debugging
+    
+        // Assuming cookId is supposed to be the ID of the user who created the meal.
+        database.getMealById(id, (err, meal) => {
+            if (err) {
+                return callback({ status: 500, message: 'Error fetching meal' }, null);
+            }
+            if (!meal) {
+                return callback({ status: 404, message: `Meal with ID ${id} not found` }, null);
+            }
+    
+            const cookId = meal.cookId;  // Assuming the meal has a `cookId` property
+            if (parseInt(cookId) !== parseInt(authUserId)) {
+                return callback({ status: 403, message: 'Forbidden: You can only update your own data' }, null);
+            }
+    
+            database.updateMeal(id, updatedMeal, (err, data) => {
+                if (err) {
+                    callback({ status: 400, message: err.message }, null);
+                } else {
+                    if (data) {
+                        callback(null, {
+                            status: 200,
+                            message: `Meal updated with id ${id}.`,
+                            data: data
+                        });
+                    } else {
+                        callback({
+                            status: 404,
+                            message: `Meal not found with id ${id}.`,
+                            data: null
+                        }, null);
+                    }
+                }
+            });
+        });
+    }
+    
+    
+    
+}
 
-      callback(null, {
-        status: 200,
-        message: `Found ${results.length} meals`,
-        data: results
-      });
-    });
-  },
-
-  // Haal maaltijd op basis van ID
-  getById: (mealId, callback) => {
-    const query = 'SELECT * FROM `meal` WHERE `id` = ?';
-
-    pool.query(query, [mealId], (err, results) => {
-      if (err || results.length === 0) {
-        logger.error('Error fetching meal:', err || 'Meal not found');
-        return callback({
-          status: 404,
-          message: `Meal not found with id ${mealId}`
-        }, null);
-      }
-
-      callback(null, {
-        status: 200,
-        message: `Found meal with id ${mealId}`,
-        data: results[0]
-      });
-    });
-  },
-
-  // Update een maaltijd
-  update: (mealId, updatedMeal, callback) => {
-    const query = `
-      UPDATE \`meal\` SET name = ?, description = ?, isActive = ?, isVega = ?, isVegan = ?, isToTakeHome = ?, dateTime = ?, maxAmountOfParticipants = ?, price = ?, imageUrl = ?, cookId = ?, allergenes = ?
-      WHERE id = ?
-    `;
-    const values = [
-      updatedMeal.name,
-      updatedMeal.description,
-      updatedMeal.isActive || 1,
-      updatedMeal.isVega || 0,
-      updatedMeal.isVegan || 0,
-      updatedMeal.isToTakeHome || 1,
-      updatedMeal.dateTime,
-      updatedMeal.maxAmountOfParticipants,
-      updatedMeal.price,
-      updatedMeal.imageUrl || '',
-      updatedMeal.cookId,
-      updatedMeal.allergenes || '',
-      mealId
-    ];
-
-    pool.query(query, values, (err, results) => {
-      if (err || results.affectedRows === 0) {
-        logger.error('Error updating meal:', err || 'Meal not found');
-        return callback({
-          status: 404,
-          message: `Meal not found with id ${mealId}`
-        }, null);
-      }
-
-      callback(null, {
-        status: 200,
-        message: `Meal updated with id ${mealId}`,
-        data: updatedMeal
-      });
-    });
-  },
-
-  // Verwijder een maaltijd
-  delete: (mealId, callback) => {
-    const query = 'DELETE FROM `meal` WHERE `id` = ?';
-
-    pool.query(query, [mealId], (err, results) => {
-      if (err || results.affectedRows === 0) {
-        logger.error('Error deleting meal:', err || 'Meal not found');
-        return callback({
-          status: 404,
-          message: `Meal not found with id ${mealId}`
-        }, null);
-      }
-
-      callback(null, {
-        status: 204,
-        message: `Meal deleted with id ${mealId}`
-      });
-    });
-  }
-};
-
-module.exports = mealService;
+module.exports = mealService
