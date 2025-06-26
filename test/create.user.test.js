@@ -486,8 +486,7 @@ describe('UC-205 Wijzigen van usergegevens', () => {
             lastName: 'Doe',
             password: 'Secret1234',
             street: 'Mainstreet',
-            city: 'New York',
-            roles: 'editor,guest'
+            city: 'New York'
         }
 
         chai.request(server)
@@ -511,8 +510,7 @@ describe('UC-205 Wijzigen van usergegevens', () => {
             emailAdress: 't.testssssss@example.com',
             password: 'Secret1234',
             street: 'Mainstreet',
-            city: 'New York',
-            roles: 'editor,guest'
+            city: 'New York'
         }
 
         // Create a new user
@@ -600,8 +598,7 @@ describe('UC-205 Wijzigen van usergegevens', () => {
             password: 'Secret1234',
             phoneNumber: '123456789', // Invalid phone number
             street: 'Mainstreet',
-            city: 'New York',
-            roles: 'editor,guest'
+            city: 'New York'
         }
 
         chai.request(server)
