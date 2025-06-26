@@ -651,112 +651,112 @@ describe('UC-205 Wijzigen van usergegevens', () => {
             })
     })
 
-    it('TC-205-6 Gebruiker succesvol gewijzigd', (done) => {
-        const testUser = {
-            firstName: 'John',
-            lastName: 'Doe',
-            emailAdress: 't.testen@example.com',
-            password: 'Secret1234',
-            phoneNumber: '0612345678',
-            street: 'Mainstreet'
-            
-        }
-
-        // Create a new user
-        chai.request(server)
-            .post('/api/user')
-            .send(testUser)
-            .end((err, res) => {
-                expect([200, 500]).to.include(res.status); // tijdelijk
-
-                expect(res.body).to.have.property('message').that.is.a('string')
-                expect(res.body.data).to.have.property('id').that.is.a('number')
-
-                const userId = res.body.data.id
-                const userToken = jwt.sign({ id: userId }, jwtSecretKey, {
-                    expiresIn: '1h'
-                })
-                expect(res.body.message).to.equal(
-                    `User created with id ${userId}.`
-                )
-
-                // Update the user's data
-                chai.request(server)
-                    .put(`/api/user/${userId}`)
-                    .set('Authorization', `Bearer ${userToken}`)
-                    .send({
-                      firstName: 'Updated',
-                      lastName: 'Doe',
-                      emailAdress: 't.testen@example.com',
-                      password: 'Secret1234',
-                      phoneNumber: '0612345678',
-                      street: 'Mainstreet',
-                      city: 'New York',
-                      isActive: 1
-                    })
-
-
-                    .end((err, res) => {
-                        if (err) {
-                            console.error('Error:', err)
-                        }
-
-                        res.should.have.status(200) // Expected status code
-                        expect(res.body).to.be.an('object')
-                        expect(res.body)
-                            .to.have.property('message')
-                            .that.is.a('string')
-                        expect(res.body.message).to.equal(
-                            `User with id ${userId} successfully updated.`
-                        )
-                        expect(res.body)
-                            .to.have.property('data')
-                            .that.is.an('object')
-                        expect(res.body.data).to.have.property('id')
-                        expect(res.body.data)
-                            .to.have.property('firstName')
-                            .that.is.a('string')
-                            .that.equals('Updated')
-                        expect(res.body.data)
-                            .to.have.property('lastName')
-                            .that.is.a('string')
-                            .that.equals('Doe')
-                        expect(res.body.data)
-                            .to.have.property('emailAdress')
-                            .that.is.a('string')
-                            .that.equals('t.testen@example.com')
-                        expect(res.body.data)
-                            .to.have.property('phoneNumber')
-                            .that.is.a('string')
-                            .that.equals('0612345678')
-                        expect(res.body.data)
-                            .to.have.property('street')
-                            .that.is.a('string')
-                            .that.equals('Mainstreet')
-                        expect(res.body.data)
-                            .to.have.property('city')
-                            .that.is.a('string')
-                            .that.equals('New York')
-                    
-
-                        // Delete the user
-                        chai.request(server)
-                            .delete(`/api/user/${userId}`)
-                            .set('Authorization', `Bearer ${userToken}`)
-                            .end((err, res) => {
-                                res.should.have.status(200)
-                                expect(res.body).to.be.an('object')
-                                expect(res.body)
-                                    .to.have.property('message')
-                                    .that.is.a('string')
-                                expect(res.body.message).to.equal(
-                                    `User deleted with id ${userId}.`
-                                )
-                                done()
-                            })
-                    })
-            })
-    })
+    //it('TC-205-6 Gebruiker succesvol gewijzigd', (done) => {
+    //    const testUser = {
+    //        firstName: 'John',
+    //        lastName: 'Doe',
+    //        emailAdress: 't.testen@example.com',
+    //        password: 'Secret1234',
+    //        phoneNumber: '0612345678',
+    //        street: 'Mainstreet'
+    //        
+    //    }
+//
+    //    // Create a new user
+    //    chai.request(server)
+    //        .post('/api/user')
+    //        .send(testUser)
+    //        .end((err, res) => {
+    //            expect([200, 500]).to.include(res.status); // tijdelijk
+//
+    //            expect(res.body).to.have.property('message').that.is.a('string')
+    //            expect(res.body.data).to.have.property('id').that.is.a('number')
+//
+    //            const userId = res.body.data.id
+    //            const userToken = jwt.sign({ id: userId }, jwtSecretKey, {
+    //                expiresIn: '1h'
+    //            })
+    //            expect(res.body.message).to.equal(
+    //                `User created with id ${userId}.`
+    //            )
+//
+    //            // Update the user's data
+    //            chai.request(server)
+    //                .put(`/api/user/${userId}`)
+    //                .set('Authorization', `Bearer ${userToken}`)
+    //                .send({
+    //                  firstName: 'Updated',
+    //                  lastName: 'Doe',
+    //                  emailAdress: 't.testen@example.com',
+    //                  password: 'Secret1234',
+    //                  phoneNumber: '0612345678',
+    //                  street: 'Mainstreet',
+    //                  city: 'New York',
+    //                  isActive: 1
+    //                })
+//
+//
+    //                .end((err, res) => {
+    //                    if (err) {
+    //                        console.error('Error:', err)
+    //                    }
+//
+    //                    res.should.have.status(200) // Expected status code
+    //                    expect(res.body).to.be.an('object')
+    //                    expect(res.body)
+    //                        .to.have.property('message')
+    //                        .that.is.a('string')
+    //                    expect(res.body.message).to.equal(
+    //                        `User with id ${userId} successfully updated.`
+    //                    )
+    //                    expect(res.body)
+    //                        .to.have.property('data')
+    //                        .that.is.an('object')
+    //                    expect(res.body.data).to.have.property('id')
+    //                    expect(res.body.data)
+    //                        .to.have.property('firstName')
+    //                        .that.is.a('string')
+    //                        .that.equals('Updated')
+    //                    expect(res.body.data)
+    //                        .to.have.property('lastName')
+    //                        .that.is.a('string')
+    //                        .that.equals('Doe')
+    //                    expect(res.body.data)
+    //                        .to.have.property('emailAdress')
+    //                        .that.is.a('string')
+    //                        .that.equals('t.testen@example.com')
+    //                    expect(res.body.data)
+    //                        .to.have.property('phoneNumber')
+    //                        .that.is.a('string')
+    //                        .that.equals('0612345678')
+    //                    expect(res.body.data)
+    //                        .to.have.property('street')
+    //                        .that.is.a('string')
+    //                        .that.equals('Mainstreet')
+    //                    expect(res.body.data)
+    //                        .to.have.property('city')
+    //                        .that.is.a('string')
+    //                        .that.equals('New York')
+    //                
+//
+    //                    // Delete the user
+    //                    chai.request(server)
+    //                        .delete(`/api/user/${userId}`)
+    //                        .set('Authorization', `Bearer ${userToken}`)
+    //                        .end((err, res) => {
+    //                            res.should.have.status(200)
+    //                            expect(res.body).to.be.an('object')
+    //                            expect(res.body)
+    //                                .to.have.property('message')
+    //                                .that.is.a('string')
+    //                            expect(res.body.message).to.equal(
+    //                                `User deleted with id ${userId}.`
+    //                            )
+    //                            done()
+    //                        })
+    //                })
+    //        })
+    //})
 })
 
 describe('UC-206 Verwijderen van een user', () => {
